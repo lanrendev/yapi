@@ -677,3 +677,27 @@ exports.createWebAPIRequest = function (ops) {
   });
 }
 
+const parseJsonSchema = (obj, regExp) => {
+  let name = [];
+  let desc = [];
+  for(let attr in obj){
+    if(attr === 'properties'){
+      name.push(...Object.keys(obj[attr]).filter(x => regExp.test(x)));
+    }
+    if(attr === 'description'){
+      regExp.test(obj[attr]) && desc.push(obj[attr]);
+    }
+    if(obj.hasOwnProperty(attr) && Object.prototype.toString.call(obj[attr]) === '[object Object]'){
+      let result = parseJsonSchema(obj[attr], regExp);
+      name.push(...result.name);
+      desc.push(...result.desc);
+    }
+  }
+  return {
+    name,
+    desc
+  }
+}
+exports.parseJsonSchema = parseJsonSchema;
+
+

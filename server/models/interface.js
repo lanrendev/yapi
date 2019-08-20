@@ -1,5 +1,6 @@
 const yapi = require('../yapi.js');
 const baseModel = require('./base.js');
+const commons = require('../utils/commons.js');
 
 class interfaceModel extends baseModel {
   getName() {
@@ -346,6 +347,189 @@ class interfaceModel extends baseModel {
         ]
       })
       .limit(10);
+  }
+
+  async globalSearch(keyword) {
+    const regExp = new RegExp(keyword, 'i');
+    let result = await this.model.find({
+      $or: [
+        {
+          // 标题匹配
+          title: regExp
+        },
+        {
+          // 路径匹配
+          path: regExp
+        },
+        {
+          // 备注匹配
+          markdown: regExp
+        },
+        {
+          // 请求头匹配
+          req_headers: {
+            $elemMatch: {
+              $or: [
+                { name: regExp },
+                { value: regExp },
+                { example: regExp },
+                { desc: regExp }
+              ]
+            }
+          }
+        },
+        {
+          // 请求体匹配 form 形式保存 <list>
+          req_body_form: {
+            $elemMatch: {
+              $or: [{ name: regExp }, { desc: regExp }]
+            }
+          }
+        },
+        {
+          // 请求体匹配 query 形式保存 <list>
+          req_query: {
+            $elemMatch: {
+              $or: [{ name: regExp }, { desc: regExp }]
+            }
+          }
+        },
+        {
+          // 请求体匹配 其他形式保存 <json>
+          req_body_other: regExp
+        },
+        {
+          res_body: regExp
+        }
+      ]
+    });
+
+    result.forEach(item => {
+      item.matchResult = {
+        keyword,
+        isTitleMatch: false,
+        title: null,
+        isPathMatch: false,
+        path: null,
+        isRemarkMatch: false,
+        remark: null,
+        isRequestHeadersMatch: false,
+        requestHeaders: {
+          name: [],
+          value: [],
+          example: [],
+          desc: []
+        },
+        isRequestQueryMatch: false,
+        requestQuery: {
+          name: [],
+          example: [],
+          desc: []
+        },
+        isRequestBodyMatch: false,
+        requestBody: {
+          name: [],
+          example: [],
+          desc: []
+        },
+        isResponseBodyMatch: false,
+        responseBody: {
+          name: [],
+          desc: []
+        }
+      };
+      // 标题匹配
+      if (regExp.test(item.title)) {
+        item.matchResult.isTitleMatch = true;
+        item.matchResult.title = item.title;
+      }
+      // 路径匹配
+      if (regExp.test(item.path)) {
+        item.matchResult.isPathMatch = true;
+        item.matchResult.path = item.path;
+      }
+      // 备注匹配
+      if (regExp.test(item.markdown)) {
+        item.matchResult.isRemarkMatch = true;
+        item.matchResult.remark = item.markdown;
+      }
+      // 请求头匹配
+      if (item.req_headers.length > 0) {
+        item.req_headers.forEach(header => {
+          if (regExp.test(header.name)) {
+            item.matchResult.isRequestHeadersMatch = true;
+            item.matchResult.requestHeaders.name.push(header.name);
+          }
+          if (regExp.test(header.value)) {
+            item.matchResult.isRequestHeadersMatch = true;
+            item.matchResult.requestHeaders.value.push(header.value);
+          }
+          if (regExp.test(header.example)) {
+            item.matchResult.isRequestHeadersMatch = true;
+            item.matchResult.requestHeaders.example.push(header.example);
+          }
+          if (regExp.test(header.desc)) {
+            item.matchResult.isRequestHeadersMatch = true;
+            item.matchResult.requestHeaders.desc.push(header.desc);
+          }
+        });
+      }
+      // 请求参数 query 匹配
+      if (item.req_query.length > 0) {
+        item.req_query.forEach(param => {
+          if (regExp.test(param.name)) {
+            item.matchResult.isRequestQueryMatch = true;
+            item.matchResult.requestQuery.name.push(param.name);
+          }
+          if (regExp.test(param.example)) {
+            item.matchResult.isRequestQueryMatch = true;
+            item.matchResult.requestQuery.example.push(param.example);
+          }
+          if (regExp.test(param.desc)) {
+            item.matchResult.isRequestQueryMatch = true;
+            item.matchResult.requestQuery.desc.push(param.desc);
+          }
+        });
+      }
+      // 请求参数 body 匹配
+      if(item.req_body_type === 'form'){
+        if(item.req_body_form.length > 0){
+          item.req_body_form.forEach(param => {
+            if (regExp.test(param.name)) {
+              item.matchResult.isRequestBodyMatch = true;
+              item.matchResult.requestBody.name.push(param.name);
+            }
+            if (regExp.test(param.example)) {
+              item.matchResult.isRequestBodyMatch = true;
+              item.matchResult.requestBody.example.push(param.example);
+            }
+            if (regExp.test(param.desc)) {
+              item.matchResult.isRequestBodyMatch = true;
+              item.matchResult.requestBody.desc.push(param.desc);
+            }
+          })
+        }
+      }else{
+        // type 为 json / file /raw
+        if(!item.req_body_other) return;
+        let result = commons.parseJsonSchema(JSON.parse(item.req_body_other), regExp);
+        item.matchResult.requestBody.name = result.name;
+        item.matchResult.requestBody.desc = result.desc;
+        if(result.name.length > 0 || result.desc.length > 0){
+          item.matchResult.isRequestBodyMatch = true;
+        }    
+      }
+      // 响应 body 匹配
+      if(!item.res_body) return;
+      let result = commons.parseJsonSchema(JSON.parse(item.res_body), regExp)
+      item.matchResult.responseBody.name = result.name
+      item.matchResult.responseBody.desc = result.desc
+      if(result.name.length > 0 || result.desc.length > 0){
+        item.matchResult.isResponseBodyMatch = true
+      } 
+    });
+
+    return result.filter(x => Object.values(x.matchResult).some(x => x === true));
   }
 }
 

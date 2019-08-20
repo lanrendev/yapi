@@ -301,6 +301,34 @@ class projectModel extends baseModel {
       })
       .limit(10);
   }
+
+  async globalSearch(keyword) {
+    const regExp = new RegExp(keyword, 'i');
+    let result = await this.model.find({
+      $or: [
+        {
+          name: regExp
+        },
+        {
+          desc: regExp
+        }
+      ]
+    });
+    result.forEach(item => {
+      item.matchResult = {
+        keyword,
+        name: null,
+        desc: null
+      }
+      if(regExp.test(item.name)){
+        item.matchResult.name = item.name
+      }
+      if(regExp.test(item.desc)){
+        item.matchResult.desc = item.desc
+      }
+    })
+    return result;
+  }
 }
 
 module.exports = projectModel;

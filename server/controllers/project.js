@@ -1118,6 +1118,74 @@ class projectController extends baseController {
 
     return (ctx.body = yapi.commons.resReturn(queryList, 0, 'ok'));
   }
+  
+  /**
+   * 模糊搜索项目名称或者分组名称或接口名称
+   * @interface /project/globalSearch
+   * @method GET
+   * @category project
+   * @foldnumber 10
+   * @param {String} q
+   * @return {Object}
+   * @example ./api/project/search.json
+   */
+  async globalSearch(ctx) {
+    const { q } = ctx.request.query;
+
+    if (!q) {
+      return (ctx.body = yapi.commons.resReturn(void 0, 400, 'No keyword.'));
+    }
+
+    if (!yapi.commons.validateSearchKeyword(q)) {
+      return (ctx.body = yapi.commons.resReturn(void 0, 400, 'Bad query.'));
+    }
+
+    let projectList = await this.Model.globalSearch(q);
+    let groupList = await this.groupModel.globalSearch(q);
+    let interfaceList = await this.interfaceModel.globalSearch(q);
+
+    let projectRules = [
+      '_id',
+      'name',
+      'basepath',
+      'uid',
+      'env',
+      'members',
+      { key: 'group_id', alias: 'groupId' },
+      { key: 'up_time', alias: 'upTime' },
+      { key: 'add_time', alias: 'addTime' },
+      'matchResult'
+    ];
+    let groupRules = [
+      '_id',
+      'uid',
+      { key: 'group_name', alias: 'groupName' },
+      { key: 'group_desc', alias: 'groupDesc' },
+      { key: 'add_time', alias: 'addTime' },
+      { key: 'up_time', alias: 'upTime' },
+      'matchResult'
+    ];
+    let interfaceRules = [
+      '_id',
+      'uid',
+      { key: 'title', alias: 'title' },
+      { key: 'project_id', alias: 'projectId' },
+      { key: 'add_time', alias: 'addTime' },
+      { key: 'up_time', alias: 'upTime' },
+      'matchResult'
+    ];
+
+    projectList = commons.filterRes(projectList, projectRules);
+    groupList = commons.filterRes(groupList, groupRules);
+    interfaceList = commons.filterRes(interfaceList, interfaceRules);
+    let queryList = {
+      project: projectList,
+      group: groupList,
+      interface: interfaceList
+    };
+
+    return (ctx.body = yapi.commons.resReturn(queryList, 0, 'ok'));
+  }
 
   // 输入 swagger url 的时候 node 端请求数据
   async swaggerUrl(ctx) {
