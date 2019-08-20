@@ -206,6 +206,34 @@ class groupModel extends baseModel {
       })
       .limit(10);
   }
+
+  async globalSearch(keyword) {
+    const regExp = new RegExp(keyword, 'i');
+    let result = await this.model.find({
+      $or: [
+        {
+          group_name: regExp
+        },
+        {
+          group_desc: regExp
+        }
+      ]
+    });
+    result.forEach(item => {
+      item.matchResult = {
+        keyword,
+        name: null,
+        desc: null
+      }
+      if(regExp.test(item.group_name)){
+        item.matchResult.name = item.group_name
+      }
+      if(regExp.test(item.group_desc)){
+        item.matchResult.desc = item.group_desc
+      }
+    })
+    return result;
+  }
 }
 
 module.exports = groupModel;

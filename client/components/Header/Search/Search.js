@@ -28,7 +28,8 @@ export default class Srch extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      dataSource: []
+      dataSource: [],
+      searchValue: ''
     };
   }
 
@@ -57,10 +58,13 @@ export default class Srch extends Component {
       this.props.history.push(
         '/project/' + option.props['projectId'] + '/interface/api/' + option.props['id']
       );
+    } else if(option.props.type === '更多'){
+      this.props.history.push('/global-search?q='+ encodeURIComponent(this.state.searchValue))
     }
   };
 
   handleSearch = value => {
+    this.setState({ searchValue: value })
     axios
       .get('/api/project/search?q=' + value)
       .then(res => {
@@ -110,6 +114,11 @@ export default class Srch extends Component {
               }
             });
           }
+          dataSource.push(
+            <Option key='more' type='更多'>
+              点此全局搜索...
+            </Option>
+          );
           this.setState({
             dataSource: dataSource
           });

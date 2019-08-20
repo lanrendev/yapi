@@ -257,6 +257,11 @@ let routerConfig = {
       method: 'get'
     },
     {
+      action: 'globalSearch',
+      path: 'globalSearch',
+      method: 'get'
+    },
+    {
       action: 'upEnv',
       path: 'up_env',
       method: 'post'

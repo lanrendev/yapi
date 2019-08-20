@@ -5,5 +5,6 @@ import Group from './Group/Group.js';
 import Project from './Project/Project.js';
 import Follows from './Follows/Follows.js';
 import AddProject from './AddProject/AddProject.js';
+import GlobalSearch from './GlobalSearch/GlobalSearch.js'
 
-export { Header, Home, Login, Group, Project, Follows, AddProject };
+export { Header, Home, Login, Group, Project, Follows, AddProject, GlobalSearch };
